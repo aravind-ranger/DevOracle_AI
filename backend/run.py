@@ -5,7 +5,7 @@ import sys
 backend_dir = os.path.dirname(os.path.abspath(__file__))
 
 # Programmatically inject local libs and app root into Python path
-sys.path.insert(0, os.path.join(backend_dir, "libs"))
+#sys.path.insert(0, os.path.join(backend_dir, "libs"))
 sys.path.insert(0, backend_dir)
 
 import uvicorn
