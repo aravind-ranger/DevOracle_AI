@@ -42,6 +42,7 @@ const App: React.FC = () => {
             <Route path="/" element={<MainLayout><Landing /></MainLayout>} />
             <Route path="/login" element={<MainLayout><Login /></MainLayout>} />
             <Route path="/register" element={<MainLayout><Register /></MainLayout>} />
+            <Route path="/auth/github/callback" element={<MainLayout><Login /></MainLayout>} />
 
             {/* Authenticated Dashboard Pages */}
             <Route path="/dashboard" element={<ConsoleLayout />}>

@@ -58,7 +58,7 @@ const Login: React.FC = () => {
 
   const handleGitHubClick = () => {
     const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID || 'dummy_github_id';
-    const redirectUri = import.meta.env.VITE_GITHUB_REDIRECT_URI || 'http://localhost:5173/login';
+    const redirectUri = import.meta.env.VITE_GITHUB_REDIRECT_URI || `${window.location.origin}/auth/github/callback`;
     
     if (clientId === 'dummy_github_id') {
       // In mock mode, redirect straight to login with a mock code query parameter
