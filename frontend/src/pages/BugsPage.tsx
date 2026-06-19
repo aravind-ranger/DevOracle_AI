@@ -1,0 +1,122 @@
+import React, { useState, useEffect } from 'react';
+import CodeEditor from '../components/CodeEditor';
+import AnalysisResultView from '../components/AnalysisResultView';
+import api from '../services/api';
+import type { Review } from '../types';
+import { Bug, AlertCircle } from 'lucide-react';
+
+const BugsPage: React.FC = () => {
+  const [code, setCode] = useState(
+    `def process_transactions(payments):\n    # BUG: Potential out-of-index if payments list is empty\n    first_payment = payments[0]\n    \n    total = 0\n    for p in payments:\n        # BUG: Float accuracy issue during loop addition\n        total += p['amount']\n        \n    return total`
+  );
+  const [filename, setFilename] = useState('payments.py');
+  const [language, setLanguage] = useState('python');
+  
+  const [review, setReview] = useState<Review | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Poll for async review status updates
+  useEffect(() => {
+    if (!review || review.status === 'completed' || review.status === 'failed') return;
+
+    const interval = setInterval(async () => {
+      try {
+        const resp = await api.get(`/history/${review.id}`);
+        const updatedReview = resp.data;
+        setReview(updatedReview);
+
+        if (updatedReview.status === 'completed' || updatedReview.status === 'failed') {
+          setIsSubmitting(false);
+          clearInterval(interval);
+        }
+      } catch (err) {
+        setError('Error retrieving background audit status.');
+        setIsSubmitting(false);
+        clearInterval(interval);
+      }
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [review]);
+
+  const handleAnalyze = async () => {
+    if (!code.trim()) return;
+
+    setIsSubmitting(true);
+    setError(null);
+    setReview(null);
+
+    try {
+      const resp = await api.post('/analyze', {
+        filename,
+        code,
+      });
+      setReview(resp.data);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to submit bug analysis job.');
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-8 max-w-5xl w-full mx-auto pb-12">
+      <div>
+        <h2 className="text-2xl font-extrabold tracking-tight text-white flex items-center gap-2">
+          <Bug className="w-6 h-6 text-neonOrange" />
+          Logic Bug Analyzer
+        </h2>
+        <p className="text-sm text-gray-400 mt-1">
+          Scans source code patterns to isolate index offsets, type issues, memory leaks, and flow flaws.
+        </p>
+      </div>
+
+      {error && (
+        <div className="p-4 bg-neonRed/10 border border-neonRed/20 rounded-xl text-neonRed text-sm flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-6">
+        <div>
+          <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-2">
+            Target Filename
+          </label>
+          <input
+            type="text"
+            value={filename}
+            onChange={(e) => setFilename(e.target.value)}
+            placeholder="payments.py"
+            className="bg-[#0E1322] border border-gray-800 focus:border-neonOrange rounded-xl px-4 py-2.5 text-sm text-gray-200 outline-none w-64 transition-colors mb-4"
+          />
+          
+          <CodeEditor
+            code={code}
+            onChange={(val) => setCode(val || '')}
+            language={language}
+            onLanguageChange={setLanguage}
+            onSubmit={handleAnalyze}
+            isSubmitting={isSubmitting}
+            themeColor="neonOrange"
+            submitLabel="Run Bug Analyzer"
+          />
+        </div>
+
+        {review && (
+          <div className="space-y-4 mt-4">
+            <h3 className="text-md font-bold text-gray-200">Analysis Recommendations</h3>
+            <AnalysisResultView
+              type="bug_analysis"
+              result={review.result}
+              status={review.status}
+              errorMessage={review.error_message}
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default BugsPage;
