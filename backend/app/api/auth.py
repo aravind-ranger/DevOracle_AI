@@ -122,8 +122,9 @@ async def github_oauth_login(payload: dict, db: Session = Depends(get_db)):
     retrieves user details, registers the user if necessary, and returns JWT tokens.
     """
     code = payload.get("code")
+    redirect_uri = payload.get("redirect_uri") or settings.GITHUB_REDIRECT_URI
     if not code:
-        raise HTTPException(status_code=400, detail="Missing authorization code.")
+      raise HTTPException(status_code=400, detail="Missing authorization code.")
         
     async with httpx.AsyncClient() as client:
         # 1. Exchange OAuth code for Access Token
@@ -133,7 +134,7 @@ async def github_oauth_login(payload: dict, db: Session = Depends(get_db)):
             "client_id": settings.GITHUB_CLIENT_ID,
             "client_secret": settings.GITHUB_CLIENT_SECRET,
             "code": code,
-            "redirect_uri": settings.GITHUB_REDIRECT_URI
+            "redirect_uri": redirect_uri
         }
         
         # In mock mode, bypass external network requests

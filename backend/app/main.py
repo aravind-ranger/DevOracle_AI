@@ -39,9 +39,16 @@ app = FastAPI(
 )
 
 # 2. CORS Middleware
+allowed_origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://devoracle-4c6d4.web.app",
+    "https://devoracle-4c6d4.firebaseapp.com",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Set to specific domains in production (e.g., frontend host URL)
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

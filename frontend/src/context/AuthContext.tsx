@@ -71,8 +71,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const loginWithGitHub = async (code: string) => {
     setIsLoading(true);
+    const redirectUri = import.meta.env.VITE_GITHUB_REDIRECT_URI || 'http://localhost:5173/login';
     try {
-      const resp = await api.post('/auth/github', { code });
+      const resp = await api.post('/auth/github', { code, redirect_uri: redirectUri });
       const { access_token, refresh_token } = resp.data;
       localStorage.setItem('access_token', access_token);
       localStorage.setItem('refresh_token', refresh_token);
