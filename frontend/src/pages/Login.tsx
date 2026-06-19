@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Terminal, AlertCircle, Loader } from 'lucide-react';
@@ -7,6 +7,7 @@ const Login: React.FC = () => {
   const { login, loginWithGitHub, isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const hasCalled = useRef(false);
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -20,10 +21,28 @@ const Login: React.FC = () => {
     }
   }, [isAuthenticated, authLoading, navigate]);
 
+  const getFriendlyErrorMessage = (err: any, fallback: string) => {
+    if (!err.response) {
+      return 'Backend is currently unavailable. Please check your network connection and try again.';
+    }
+    if (err.response.status === 401) {
+      return 'Authentication expired. Please sign in again.';
+    }
+    const detail = err.response.data?.detail;
+    if (typeof detail === 'string') {
+      if (detail.includes('GitHub OAuth error') || detail.includes('incorrect or expired') || detail.includes('redirect_uri MUST match')) {
+        return 'GitHub login failed. The verification code was expired or invalid. Please try signing in again.';
+      }
+      return detail;
+    }
+    return fallback;
+  };
+
   // Handle GitHub OAuth Redirect Code Callback
   useEffect(() => {
     const code = searchParams.get('code');
-    if (code) {
+    if (code && !hasCalled.current) {
+      hasCalled.current = true;
       const processGitHubLogin = async () => {
         setIsSubmitting(true);
         setError(null);
@@ -31,7 +50,7 @@ const Login: React.FC = () => {
           await loginWithGitHub(code);
           navigate('/dashboard');
         } catch (err: any) {
-          setError(err.response?.data?.detail || 'GitHub OAuth login failed.');
+          setError(getFriendlyErrorMessage(err, 'GitHub OAuth login failed. Please try again.'));
         } finally {
           setIsSubmitting(false);
         }
@@ -50,7 +69,7 @@ const Login: React.FC = () => {
       await login(email, password);
       navigate('/dashboard');
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Invalid email or password.');
+      setError(getFriendlyErrorMessage(err, 'Invalid email or password.'));
     } finally {
       setIsSubmitting(false);
     }

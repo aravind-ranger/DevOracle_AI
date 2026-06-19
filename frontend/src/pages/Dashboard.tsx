@@ -4,11 +4,10 @@ import api from '../services/api';
 import type { Review } from '../types';
 import StatsCard from '../components/StatsCard';
 import SkeletonLoader from '../components/SkeletonLoader';
+import DashboardHeader from '../components/DashboardHeader';
 import { Bug, ShieldAlert, GitPullRequest, Code, Terminal, AlertCircle, ArrowRight } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
 
 const Dashboard: React.FC = () => {
-  const { user } = useAuth();
   const [history, setHistory] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -73,24 +72,8 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-8 max-w-6xl w-full mx-auto pb-12">
-      {/* Header Banner */}
-      <div className="glass-panel p-8 rounded-3xl border-neonBlue/15 relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-neonBlue/5 rounded-full blur-[80px]" />
-        
-        <div className="space-y-1 relative z-10">
-          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-            Welcome, <span className="bg-gradient-to-r from-neonBlue to-neonPurple bg-clip-text text-transparent">{user?.name}</span>
-          </h2>
-          <p className="text-gray-400 text-sm max-w-md">
-            All code analyzers are loaded. Feed code snippets or git links to begin auditing.
-          </p>
-        </div>
-
-        <div className="relative z-10 shrink-0 flex items-center gap-3 bg-black/40 border border-gray-800/80 px-4 py-2.5 rounded-2xl text-xs font-semibold font-mono text-neonBlue">
-          <Terminal className="w-4 h-4 animate-pulse" />
-          <span>CONSOLE: READY</span>
-        </div>
-      </div>
+      {/* Dashboard Header Component */}
+      <DashboardHeader />
 
       {/* Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">

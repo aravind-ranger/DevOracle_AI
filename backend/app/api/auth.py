@@ -2,6 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 import httpx
+import logging
+
+logger = logging.getLogger("devoracle.auth")
 import jwt
 from uuid import UUID
 
@@ -121,85 +124,106 @@ async def github_oauth_login(payload: dict, db: Session = Depends(get_db)):
     Exchanges an authorization code from the frontend for a GitHub access token,
     retrieves user details, registers the user if necessary, and returns JWT tokens.
     """
-    code = payload.get("code")
-    redirect_uri = payload.get("redirect_uri") or settings.GITHUB_REDIRECT_URI
-    if not code:
-      raise HTTPException(status_code=400, detail="Missing authorization code.")
-        
-    async with httpx.AsyncClient() as client:
-        # 1. Exchange OAuth code for Access Token
-        token_url = "https://github.com/login/oauth/access_token"
-        headers = {"Accept": "application/json"}
-        data = {
-            "client_id": settings.GITHUB_CLIENT_ID,
-            "client_secret": settings.GITHUB_CLIENT_SECRET,
-            "code": code,
-            "redirect_uri": redirect_uri
-        }
-        
-        # In mock mode, bypass external network requests
-        if settings.GITHUB_CLIENT_ID == "dummy_github_id":
-            # Mock GitHub login
-            mock_email = "github-developer@example.com"
-            mock_name = "GitHub Developer"
-            mock_avatar = "https://avatars.githubusercontent.com/u/9919?v=4"
-        else:
-            token_resp = await client.post(token_url, headers=headers, data=data)
-            if token_resp.status_code != 200:
-                raise HTTPException(status_code=400, detail="Failed to exchange authorization code with GitHub.")
-                
-            token_data = token_resp.json()
-            access_token = token_data.get("access_token")
-            if not access_token:
-                raise HTTPException(status_code=400, detail=f"GitHub OAuth error: {token_data.get('error_description', 'No access token returned.')}")
-                
-            # 2. Get User Profile from GitHub API
-            user_headers = {"Authorization": f"token {access_token}", "Accept": "application/vnd.github.v3+json"}
-            user_resp = await client.get("https://api.github.com/user", headers=user_headers)
-            if user_resp.status_code != 200:
-                raise HTTPException(status_code=400, detail="Failed to fetch user info from GitHub.")
-                
-            gh_profile = user_resp.json()
-            mock_name = gh_profile.get("name") or gh_profile.get("login")
-            mock_avatar = gh_profile.get("avatar_url")
-            mock_email = gh_profile.get("email")
+    try:
+        code = payload.get("code")
+        redirect_uri = payload.get("redirect_uri") or settings.GITHUB_REDIRECT_URI
+        if not code:
+            raise HTTPException(status_code=400, detail="Missing authorization code.")
             
-            # If email is private, fetch public/private emails list
-            if not mock_email:
-                emails_resp = await client.get("https://api.github.com/user/emails", headers=user_headers)
-                if emails_resp.status_code == 200:
-                    emails = emails_resp.json()
-                    # Find primary email
-                    for email_item in emails:
-                        if email_item.get("primary"):
-                            mock_email = email_item.get("email")
-                            break
-                            
-            if not mock_email:
-                mock_email = f"{gh_profile.get('login')}@users.noreply.github.com"
-                
-        # 3. Create or Update User in DB
-        user = db.query(User).filter(User.email == mock_email).first()
-        if not user:
-            user = User(
-                name=mock_name,
-                email=mock_email,
-                avatar_url=mock_avatar,
-                provider="github"
-            )
-            db.add(user)
-            db.commit()
-            db.refresh(user)
-        else:
-            # Update name and avatar if changed
-            user.name = mock_name
-            user.avatar_url = mock_avatar
-            db.commit()
-            db.refresh(user)
+        async with httpx.AsyncClient() as client:
+            # 1. Exchange OAuth code for Access Token
+            token_url = "https://github.com/login/oauth/access_token"
+            headers = {"Accept": "application/json"}
+            data = {
+                "client_id": settings.GITHUB_CLIENT_ID,
+                "client_secret": settings.GITHUB_CLIENT_SECRET,
+                "code": code,
+                "redirect_uri": redirect_uri
+            }
             
-        # 4. Generate local JWT tokens
-        user_id_str = str(user.id)
-        access_token = create_access_token(data={"user_id": user_id_str, "email": user.email})
-        refresh_token = create_refresh_token(data={"user_id": user_id_str, "email": user.email})
-        
-        return Token(access_token=access_token, refresh_token=refresh_token)
+            # In mock mode, bypass external network requests
+            if settings.GITHUB_CLIENT_ID == "dummy_github_id":
+                logger.info("Running GitHub OAuth login in MOCK mode.")
+                mock_email = "github-developer@example.com"
+                mock_name = "GitHub Developer"
+                mock_avatar = "https://avatars.githubusercontent.com/u/9919?v=4"
+            else:
+                logger.info(f"Initiating live GitHub OAuth exchange for code with redirect_uri: {redirect_uri}")
+                token_resp = await client.post(token_url, headers=headers, data=data)
+                if token_resp.status_code != 200:
+                    logger.error(f"GitHub token exchange HTTP error {token_resp.status_code}: {token_resp.text}")
+                    raise HTTPException(status_code=400, detail="Failed to exchange authorization code with GitHub.")
+                    
+                token_data = token_resp.json()
+                access_token = token_data.get("access_token")
+                if not access_token:
+                    err_desc = token_data.get('error_description', 'No access token returned.')
+                    logger.error(f"GitHub token exchange returned error response: {token_data}")
+                    raise HTTPException(status_code=400, detail=f"GitHub OAuth error: {err_desc}")
+                    
+                # 2. Get User Profile from GitHub API
+                user_headers = {
+                    "Authorization": f"token {access_token}",
+                    "Accept": "application/vnd.github.v3+json",
+                    "User-Agent": "DevOracle-AI-Backend"
+                }
+                user_resp = await client.get("https://api.github.com/user", headers=user_headers)
+                if user_resp.status_code != 200:
+                    logger.error(f"GitHub user profile fetch HTTP error {user_resp.status_code}: {user_resp.text}")
+                    raise HTTPException(status_code=400, detail="Failed to fetch user info from GitHub.")
+                    
+                gh_profile = user_resp.json()
+                mock_name = gh_profile.get("name") or gh_profile.get("login")
+                mock_avatar = gh_profile.get("avatar_url")
+                mock_email = gh_profile.get("email")
+                
+                # If email is private, fetch public/private emails list
+                if not mock_email:
+                    emails_resp = await client.get("https://api.github.com/user/emails", headers=user_headers)
+                    if emails_resp.status_code == 200:
+                        emails = emails_resp.json()
+                        # Find primary email
+                        for email_item in emails:
+                            if email_item.get("primary"):
+                                mock_email = email_item.get("email")
+                                break
+                                
+                if not mock_email:
+                    mock_email = f"{gh_profile.get('login')}@users.noreply.github.com"
+                    
+            # 3. Create or Update User in DB
+            logger.info(f"Database sync for GitHub user: email={mock_email}, name={mock_name}")
+            user = db.query(User).filter(User.email == mock_email).first()
+            if not user:
+                user = User(
+                    name=mock_name,
+                    email=mock_email,
+                    avatar_url=mock_avatar,
+                    provider="github"
+                )
+                db.add(user)
+                db.commit()
+                db.refresh(user)
+                logger.info(f"Created new GitHub authenticated user: {user.id}")
+            else:
+                # Update name and avatar if changed
+                user.name = mock_name
+                user.avatar_url = mock_avatar
+                db.commit()
+                db.refresh(user)
+                logger.info(f"Updated existing GitHub authenticated user: {user.id}")
+                
+            # 4. Generate local JWT tokens
+            user_id_str = str(user.id)
+            access_token = create_access_token(data={"user_id": user_id_str, "email": user.email})
+            refresh_token = create_refresh_token(data={"user_id": user_id_str, "email": user.email})
+            
+            return Token(access_token=access_token, refresh_token=refresh_token)
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.exception("Unexpected exception during GitHub OAuth execution")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Internal Server Error: {str(e)}"
+        )

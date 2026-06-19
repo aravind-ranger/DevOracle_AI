@@ -23,9 +23,18 @@ class Settings(BaseSettings):
     @field_validator("DATABASE_URL", mode="before")
     @classmethod
     def assemble_db_connection(cls, v: str) -> str:
-        # Standardize postgres:// to postgresql:// for SQLAlchemy compatibility
-        if isinstance(v, str) and v.startswith("postgres://"):
-            return v.replace("postgres://", "postgresql://", 1)
+        if isinstance(v, str):
+            v = v.strip()
+            # Standardize postgres:// to postgresql:// for SQLAlchemy compatibility
+            if v.startswith("postgres://"):
+                return v.replace("postgres://", "postgresql://", 1)
+        return v
+
+    @field_validator("GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET", "GITHUB_REDIRECT_URI", "JWT_SECRET", mode="before")
+    @classmethod
+    def strip_whitespace(cls, v: str) -> str:
+        if isinstance(v, str):
+            return v.strip()
         return v
 
     model_config = SettingsConfigDict(
