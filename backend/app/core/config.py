@@ -44,3 +44,12 @@ class Settings(BaseSettings):
     )
 
 settings = Settings()
+
+# Log database host on startup for debugging
+from urllib.parse import urlparse
+try:
+    parsed = urlparse(settings.DATABASE_URL)
+    print(f"DATABASE HOST CONFIGURED: {parsed.hostname}")
+except Exception as e:
+    print(f"FAILED TO PARSE DATABASE HOST: {e}")
+
