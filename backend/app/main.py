@@ -29,7 +29,15 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     handlers=[logging.StreamHandler(sys.stdout)]
 )
-logger = logging.getLogger("devoracle.main")
+# Create database tables automatically on startup
+from app.core.database import engine
+from app.models import Base
+try:
+    logger.info("Initializing database tables...")
+    Base.metadata.create_all(bind=engine)
+    logger.info("Database tables initialized successfully.")
+except Exception as e:
+    logger.error(f"Failed to initialize database tables: {e}")
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
