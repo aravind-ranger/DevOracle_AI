@@ -55,7 +55,7 @@ const Navbar: React.FC = () => {
                     <UserIcon className="w-4 h-4 text-neonPurple" />
                   </div>
                 )}
-                <span className="text-sm font-semibold text-gray-200 hidden sm:inline">{user?.name}</span>
+                <span className="text-sm font-semibold text-gray-200 hidden sm:inline">Hi, {user?.name}</span>
               </div>
 
               <button

@@ -45,10 +45,29 @@ class ValidationError(APIException):
             error_code="VALIDATION_FAILED"
         )
 
+def get_cors_headers(request: Request) -> dict:
+    """Helper to generate CORS headers for exception responses."""
+    origin = request.headers.get("origin")
+    allowed_origins = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "https://devoracle-4c6d4.web.app",
+        "https://devoracle-4c6d4.firebaseapp.com",
+    ]
+    if origin in allowed_origins:
+        return {
+            "Access-Control-Allow-Origin": origin,
+            "Access-Control-Allow-Credentials": "true",
+            "Access-Control-Allow-Methods": "*",
+            "Access-Control-Allow-Headers": "*",
+        }
+    return {}
+
 async def api_exception_handler(request: Request, exc: APIException) -> JSONResponse:
     """JSON response handler for APIException"""
     return JSONResponse(
         status_code=exc.status_code,
+        headers=get_cors_headers(request),
         content={
             "success": False,
             "error": {
@@ -73,6 +92,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        headers=get_cors_headers(request),
         content={
             "success": False,
             "error": {
@@ -88,11 +108,13 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
     logger.exception(f"Unhandled Exception on {request.url.path}: {str(exc)}")
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        headers=get_cors_headers(request),
         content={
             "success": False,
             "error": {
                 "code": "INTERNAL_SERVER_ERROR",
-                "message": "An unexpected error occurred on the server."
+                "message": f"An unexpected error occurred on the server: {str(exc)}"
             }
         }
     )
+

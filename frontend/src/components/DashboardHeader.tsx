@@ -13,11 +13,8 @@ const DashboardHeader: React.FC = () => {
   };
 
   const getGreeting = () => {
-    const hour = new Date().getHours();
     const name = user?.name || 'Developer';
-    if (hour < 12) return `Good Morning, ${name} 👋`;
-    if (hour < 18) return `Good Afternoon, ${name} 👋`;
-    return `Good Evening, ${name} 👋`;
+    return `Hi, ${name} 👋`;
   };
 
   return (
