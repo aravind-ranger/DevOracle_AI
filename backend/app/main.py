@@ -14,10 +14,12 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.exceptions import RequestValidationError
 
 from app.core.config import settings
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.core.exceptions import (
     APIException,
     api_exception_handler,
     validation_exception_handler,
+    http_exception_handler,
     global_exception_handler
 )
 from app.api import auth, reviews, health
@@ -103,6 +105,7 @@ async def rate_limit_middleware(request: Request, call_next):
 # 4. Global Exception Handlers Registration
 app.add_exception_handler(APIException, api_exception_handler)
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(StarletteHTTPException, http_exception_handler)
 app.add_exception_handler(Exception, global_exception_handler)
 
 # 5. Include Routers

@@ -103,6 +103,22 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         }
     )
 
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+async def http_exception_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:
+    """Formats standard HTTPExceptions (like 401, 404) with proper CORS headers"""
+    return JSONResponse(
+        status_code=exc.status_code,
+        headers=get_cors_headers(request),
+        content={
+            "success": False,
+            "error": {
+                "code": "HTTP_ERROR",
+                "message": exc.detail
+            }
+        }
+    )
+
 async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Fallback handler for unhandled exceptions to avoid exposing raw stacktraces"""
     logger.exception(f"Unhandled Exception on {request.url.path}: {str(exc)}")
@@ -117,4 +133,5 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
             }
         }
     )
+
 
