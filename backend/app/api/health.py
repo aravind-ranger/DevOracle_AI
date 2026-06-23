@@ -38,3 +38,28 @@ def health_check(db: Session = Depends(get_db)):
         "latency_sec": round(latency, 4)
     }
 
+from app.models.user import User
+from app.models.review import Review
+
+@router.get("/debug-db")
+def debug_db(db: Session = Depends(get_db)):
+    try:
+        user_count = db.query(User).count()
+        review_count = db.query(Review).count()
+        first_user = db.query(User).first()
+        return {
+            "status": "success",
+            "users_count": user_count,
+            "reviews_count": review_count,
+            "first_user_id": str(first_user.id) if first_user else None,
+            "first_user_email": first_user.email if first_user else None
+        }
+    except Exception as e:
+        import traceback
+        return {
+            "status": "error",
+            "message": str(e),
+            "traceback": traceback.format_exc()
+        }
+
+
