@@ -17,3 +17,7 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     reviews = relationship("Review", back_populates="user", cascade="all, delete-orphan")
+
+    @property
+    def has_github_token(self) -> bool:
+        return self.github_access_token is not None and self.github_access_token != ""

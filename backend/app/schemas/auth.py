@@ -27,6 +27,7 @@ class UserResponse(BaseModel):
     email: EmailStr
     avatar_url: Optional[str] = None
     provider: str
+    has_github_token: bool = False
     created_at: datetime
 
     class Config:
