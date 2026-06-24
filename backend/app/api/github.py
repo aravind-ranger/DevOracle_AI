@@ -7,6 +7,7 @@ import base64
 from app.core.database import get_db
 from app.api.auth import get_current_user
 from app.models.user import User
+from app.core.config import settings
 
 router = APIRouter(prefix="/github", tags=["GitHub API Integration"])
 
@@ -16,14 +17,18 @@ async def get_github_repos(
     db: Session = Depends(get_db)
 ):
     """Fetch repositories of the currently authenticated GitHub user."""
-    if not current_user.github_access_token:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User is not logged in via GitHub or has no access token."
-        )
+    github_token = current_user.github_access_token
+    if not github_token:
+        if settings.GITHUB_CLIENT_ID == "dummy_github_id":
+            github_token = "mock_github_token"
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User is not logged in via GitHub or has no access token."
+            )
 
     # In mock mode, return mock repositories
-    if current_user.github_access_token == "mock_github_token":
+    if github_token == "mock_github_token":
         return [
             {"id": 1, "name": "Vizhi_teams", "full_name": f"{current_user.name}/Vizhi_teams", "owner": {"login": current_user.name}},
             {"id": 2, "name": "DevOracle_AI", "full_name": f"{current_user.name}/DevOracle_AI", "owner": {"login": current_user.name}},
@@ -32,7 +37,7 @@ async def get_github_repos(
 
     async with httpx.AsyncClient() as client:
         headers = {
-            "Authorization": f"token {current_user.github_access_token}",
+            "Authorization": f"token {github_token}",
             "Accept": "application/vnd.github.v3+json",
             "User-Agent": "DevOracle-AI-Backend"
         }
@@ -58,11 +63,15 @@ async def get_github_repo_files(
     current_user: User = Depends(get_current_user)
 ):
     """Fetch recursive file tree of the specified repository."""
-    if not current_user.github_access_token:
-        raise HTTPException(status_code=400, detail="No GitHub access token found.")
+    github_token = current_user.github_access_token
+    if not github_token:
+        if settings.GITHUB_CLIENT_ID == "dummy_github_id":
+            github_token = "mock_github_token"
+        else:
+            raise HTTPException(status_code=400, detail="No GitHub access token found.")
 
     # In mock mode, return mock files
-    if current_user.github_access_token == "mock_github_token":
+    if github_token == "mock_github_token":
         return [
             {"path": "README.md", "type": "blob"},
             {"path": "package.json", "type": "blob"},
@@ -76,7 +85,7 @@ async def get_github_repo_files(
 
     async with httpx.AsyncClient() as client:
         headers = {
-            "Authorization": f"token {current_user.github_access_token}",
+            "Authorization": f"token {github_token}",
             "Accept": "application/vnd.github.v3+json",
             "User-Agent": "DevOracle-AI-Backend"
         }
@@ -120,11 +129,15 @@ async def get_github_file_content(
     current_user: User = Depends(get_current_user)
 ):
     """Fetch text content of a specific file in the repository."""
-    if not current_user.github_access_token:
-        raise HTTPException(status_code=400, detail="No GitHub access token found.")
+    github_token = current_user.github_access_token
+    if not github_token:
+        if settings.GITHUB_CLIENT_ID == "dummy_github_id":
+            github_token = "mock_github_token"
+        else:
+            raise HTTPException(status_code=400, detail="No GitHub access token found.")
 
     # In mock mode, return mock file content
-    if current_user.github_access_token == "mock_github_token":
+    if github_token == "mock_github_token":
         if path == "payments.py":
             return {
                 "content": "def process_transactions(payments):\n    # BUG: Potential out-of-index if payments list is empty\n    first_payment = payments[0]\n\n    total = 0\n    for p in payments:\n        # BUG: Float accuracy issue during loop addition\n        total += p['amount']\n\n    return total\n"
@@ -133,7 +146,7 @@ async def get_github_file_content(
 
     async with httpx.AsyncClient() as client:
         headers = {
-            "Authorization": f"token {current_user.github_access_token}",
+            "Authorization": f"token {github_token}",
             "Accept": "application/vnd.github.v3+json",
             "User-Agent": "DevOracle-AI-Backend"
         }
