@@ -22,7 +22,7 @@ from app.core.exceptions import (
     http_exception_handler,
     global_exception_handler
 )
-from app.api import auth, reviews, health
+from app.api import auth, reviews, health, github
 
 # Configure Logging
 import logging
@@ -39,6 +39,11 @@ from app.models import Base
 try:
     logger.info("Initializing database tables...")
     Base.metadata.create_all(bind=engine)
+    # Ensure new columns are added if the database tables already exist
+    from sqlalchemy import text
+    with engine.connect() as conn:
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS github_access_token VARCHAR"))
+        conn.commit()
     logger.info("Database tables initialized successfully.")
 except Exception as e:
     logger.error(f"Failed to initialize database tables: {e}")
@@ -112,6 +117,7 @@ app.add_exception_handler(Exception, global_exception_handler)
 app.include_router(auth.router, prefix="/api")
 app.include_router(reviews.router, prefix="/api")
 app.include_router(health.router, prefix="/api")
+app.include_router(github.router, prefix="/api")
 
 @app.get("/", include_in_schema=False)
 def root_redirect():

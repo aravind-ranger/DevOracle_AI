@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
     GEMINI_API_KEY: str
+    GEMINI_MODEL: str = "gemini-1.5-flash"
     
     GITHUB_CLIENT_ID: str
     GITHUB_CLIENT_SECRET: str

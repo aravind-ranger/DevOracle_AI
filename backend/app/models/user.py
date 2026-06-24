@@ -13,6 +13,7 @@ class User(Base):
     avatar_url = Column(String, nullable=True)
     provider = Column(String, default="local")  # local, github
     hashed_password = Column(String, nullable=True)
+    github_access_token = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     reviews = relationship("Review", back_populates="user", cascade="all, delete-orphan")

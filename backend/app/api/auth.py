@@ -147,6 +147,7 @@ async def github_oauth_login(payload: dict, db: Session = Depends(get_db)):
                 mock_email = "github-developer@example.com"
                 mock_name = "GitHub Developer"
                 mock_avatar = "https://avatars.githubusercontent.com/u/9919?v=4"
+                gh_access_token = "mock_github_token"
             else:
                 logger.info(f"Initiating live GitHub OAuth exchange for code with redirect_uri: {redirect_uri}")
                 token_resp = await client.post(token_url, headers=headers, data=data)
@@ -156,6 +157,7 @@ async def github_oauth_login(payload: dict, db: Session = Depends(get_db)):
                     
                 token_data = token_resp.json()
                 access_token = token_data.get("access_token")
+                gh_access_token = access_token
                 if not access_token:
                     err_desc = token_data.get('error_description', 'No access token returned.')
                     logger.error(f"GitHub token exchange returned error response: {token_data}")
@@ -199,16 +201,18 @@ async def github_oauth_login(payload: dict, db: Session = Depends(get_db)):
                     name=mock_name,
                     email=mock_email,
                     avatar_url=mock_avatar,
-                    provider="github"
+                    provider="github",
+                    github_access_token=gh_access_token
                 )
                 db.add(user)
                 db.commit()
                 db.refresh(user)
                 logger.info(f"Created new GitHub authenticated user: {user.id}")
             else:
-                # Update name and avatar if changed
+                # Update name, avatar, and token if changed
                 user.name = mock_name
                 user.avatar_url = mock_avatar
+                user.github_access_token = gh_access_token
                 db.commit()
                 db.refresh(user)
                 logger.info(f"Updated existing GitHub authenticated user: {user.id}")

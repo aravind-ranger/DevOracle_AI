@@ -43,12 +43,14 @@ class AIService:
         prompt: str,
         system_instruction: str,
         response_schema: Type[BaseModel],
-        model_name: str = "gemini-2.5-flash"
+        model_name: str = None
     ) -> Tuple[Dict[str, Any], int, float]:
         """
         Executes a call to Google Gemini API with strict Pydantic response schema.
         Returns (result_dict, tokens_used, execution_time).
         """
+        if model_name is None:
+            model_name = settings.GEMINI_MODEL
         start_time = time.time()
         
         if self.is_mock:
