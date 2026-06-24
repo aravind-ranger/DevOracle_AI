@@ -7,6 +7,7 @@ from app.models.log import ReviewLog
 from app.services.ai_service import AIService
 from app.services.github_service import GitHubService
 from app.core.exceptions import NotFoundError, APIException
+from app.core.config import settings
 
 logger = logging.getLogger("devoracle.reviews")
 
@@ -121,7 +122,7 @@ class ReviewService:
             db.commit()
             
             # 5. Log execution metrics in review_logs table
-            model_used = "gemini-2.5-flash" if not self.ai_service.is_mock else "mock-model"
+            model_used = settings.GEMINI_MODEL if not self.ai_service.is_mock else "mock-model"
             log_record = ReviewLog(
                 review_id=review.id,
                 model_used=model_used,
