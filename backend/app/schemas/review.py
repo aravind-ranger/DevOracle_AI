@@ -21,7 +21,7 @@ class ReviewResponse(BaseModel):
     user_id: UUID
     review_type: str
     status: str
-    metadata_json: Optional[Any] = Field(None, serialization_alias="metadata", validation_alias="metadata")
+    metadata_json: Optional[Any] = Field(None, serialization_alias="metadata")
     result: Optional[Any] = None
     error_message: Optional[str] = None
     created_at: datetime
@@ -29,3 +29,4 @@ class ReviewResponse(BaseModel):
     class Config:
         from_attributes = True
         populate_by_name = True
+
