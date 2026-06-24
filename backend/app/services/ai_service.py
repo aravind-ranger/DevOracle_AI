@@ -59,55 +59,77 @@ class AIService:
             # Return mock data, mock token count, and execution time
             return mock_data, 150, execution_time
 
-        try:
-            config = types.GenerateContentConfig(
-                system_instruction=system_instruction,
-                response_mime_type="application/json",
-                response_schema=response_schema,
-                temperature=0.1,
-            )
-            
-            response = self.client.models.generate_content(
-                model=model_name,
-                contents=prompt,
-                config=config
-            )
-            
-            execution_time = time.time() - start_time
-            
+        max_retries = 5
+        base_delay = 2.0
+        
+        for attempt in range(max_retries):
             try:
-                result_dict = json.loads(response.text)
-            except Exception as json_err:
-                logger.error(f"Failed to parse Gemini response: {response.text}")
-                raise APIException(
-                    status_code=502,
-                    detail="Invalid JSON response received from AI model.",
-                    error_code="AI_PARSE_ERROR"
+                config = types.GenerateContentConfig(
+                    system_instruction=system_instruction,
+                    response_mime_type="application/json",
+                    response_schema=response_schema,
+                    temperature=0.1,
                 )
+                
+                response = self.client.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                    config=config
+                )
+                break
+            except Exception as e:
+                is_retryable = False
+                err_msg = str(e).lower()
+                
+                if isinstance(e, APIError):
+                    if e.code in [429, 500, 502, 503, 504]:
+                        is_retryable = True
+                
+                if not is_retryable and any(x in err_msg for x in ["429", "503", "demand", "rate limit", "quota", "temporarily"]):
+                    is_retryable = True
+                    
+                if is_retryable and attempt < max_retries - 1:
+                    sleep_time = (base_delay * (2 ** attempt)) + (time.time() % 1.0)
+                    logger.warning(
+                        f"Gemini API transient failure (attempt {attempt+1}/{max_retries}): {str(e)}. "
+                        f"Retrying in {sleep_time:.2f} seconds..."
+                    )
+                    time.sleep(sleep_time)
+                else:
+                    logger.error(f"Gemini API failed permanently after {attempt+1} attempts: {str(e)}")
+                    if isinstance(e, APIError):
+                        raise APIException(
+                            status_code=502,
+                            detail=f"Google Gemini API error: {e.message}",
+                            error_code="AI_API_ERROR"
+                        )
+                    else:
+                        raise APIException(
+                            status_code=500,
+                            detail=f"Failed to process AI review: {str(e)}",
+                            error_code="AI_PROCESSING_ERROR"
+                        )
 
-            # Get token usage if available in response
-            tokens_used = 0
-            if response.usage_metadata:
-                tokens_used = response.usage_metadata.total_token_count
-            else:
-                tokens_used = (len(prompt) + len(response.text)) // 4
-
-            return result_dict, tokens_used, execution_time
-
-        except APIError as e:
-            logger.error(f"Gemini API Error: {str(e)}")
+        execution_time = time.time() - start_time
+        
+        try:
+            result_dict = json.loads(response.text)
+        except Exception as json_err:
+            logger.error(f"Failed to parse Gemini response: {response.text}")
             raise APIException(
                 status_code=502,
-                detail=f"Google Gemini API error: {e.message}",
-                error_code="AI_API_ERROR"
+                detail="Invalid JSON response received from AI model.",
+                error_code="AI_PARSE_ERROR"
             )
-        except Exception as e:
-            logger.error(f"Unexpected AI error: {str(e)}")
-            raise APIException(
-                status_code=500,
-                detail=f"Failed to process AI review: {str(e)}",
-                error_code="AI_PROCESSING_ERROR"
-            )
+
+        # Get token usage if available in response
+        tokens_used = 0
+        if response.usage_metadata:
+            tokens_used = response.usage_metadata.total_token_count
+        else:
+            tokens_used = (len(prompt) + len(response.text)) // 4
+
+        return result_dict, tokens_used, execution_time
 
     def _generate_mock_data(self, response_schema: Type[BaseModel]) -> Dict[str, Any]:
         """Generates realistic mock analysis data when API key is missing or invalid."""
