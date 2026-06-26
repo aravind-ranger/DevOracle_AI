@@ -27,6 +27,7 @@ class RERService:
             ).first()
             
             if existing:
+                print(f"commit already exists in DB: {c.commit_sha}")
                 continue
 
             record = CommitRecord(
@@ -45,9 +46,9 @@ class RERService:
             )
             db.add(record)
             records.append(record)
-        
         if records:
             db.commit()
+            print(f"Stored {len(records)} commits successfully")
             for r in records:
                 db.refresh(r)
         return records

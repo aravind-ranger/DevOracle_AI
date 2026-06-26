@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import api from '../services/api';
 import type { User } from '../types';
 
@@ -26,7 +26,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   });
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     try {
       const resp = await api.get('/auth/me');
       setUser(resp.data);
@@ -37,7 +37,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       localStorage.removeItem('refresh_token');
       localStorage.removeItem('user');
     }
-  };
+  }, []);
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -48,9 +48,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setIsLoading(false);
     };
     initializeAuth();
-  }, []);
+  }, [fetchProfile]);
 
-  const login = async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string) => {
     setIsLoading(true);
     try {
       const resp = await api.post('/auth/login', { email, password });
@@ -64,9 +64,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [fetchProfile]);
 
-  const register = async (name: string, email: string, password: string) => {
+  const register = useCallback(async (name: string, email: string, password: string) => {
     setIsLoading(true);
     try {
       await api.post('/auth/register', { name, email, password });
@@ -76,9 +76,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setIsLoading(false);
       throw err;
     }
-  };
+  }, [login]);
 
-  const loginWithGitHub = async (code: string) => {
+  const loginWithGitHub = useCallback(async (code: string) => {
     setIsLoading(true);
     const redirectUri = import.meta.env.VITE_GITHUB_REDIRECT_URI || `${window.location.origin}/auth/github/callback`;
     try {
@@ -93,14 +93,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [fetchProfile]);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('user');
     setUser(null);
-  };
+  }, []);
 
   return (
     <AuthContext.Provider
@@ -127,3 +127,4 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
+

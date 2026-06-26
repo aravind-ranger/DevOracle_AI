@@ -6,6 +6,7 @@ export interface User {
   email: string;
   avatar_url: string | null;
   provider: 'local' | 'github';
+  has_github_token: boolean;
   created_at: string;
 }
 

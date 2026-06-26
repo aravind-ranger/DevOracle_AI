@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Terminal, AlertCircle, Loader } from 'lucide-react';
@@ -7,7 +7,6 @@ const Login: React.FC = () => {
   const { login, loginWithGitHub, isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const hasCalled = useRef(false);
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -41,8 +40,13 @@ const Login: React.FC = () => {
   // Handle GitHub OAuth Redirect Code Callback
   useEffect(() => {
     const code = searchParams.get('code');
-    if (code && !hasCalled.current) {
-      hasCalled.current = true;
+    if (code) {
+      const sessionKey = `gh_code_${code}`;
+      if (sessionStorage.getItem(sessionKey)) {
+        return;
+      }
+      sessionStorage.setItem(sessionKey, 'processed');
+
       const processGitHubLogin = async () => {
         setIsSubmitting(true);
         setError(null);
@@ -50,6 +54,7 @@ const Login: React.FC = () => {
           await loginWithGitHub(code);
           navigate('/dashboard');
         } catch (err: any) {
+          sessionStorage.removeItem(sessionKey);
           setError(getFriendlyErrorMessage(err, 'GitHub OAuth login failed. Please try again.'));
         } finally {
           setIsSubmitting(false);

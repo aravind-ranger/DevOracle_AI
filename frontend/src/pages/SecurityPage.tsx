@@ -4,6 +4,7 @@ import AnalysisResultView from '../components/AnalysisResultView';
 import api from '../services/api';
 import type { Review } from '../types';
 import { ShieldAlert, AlertCircle } from 'lucide-react';
+import GithubRepoBrowser from '../components/GithubRepoBrowser';
 
 const SecurityPage: React.FC = () => {
   const [code, setCode] = useState(
@@ -77,18 +78,31 @@ const SecurityPage: React.FC = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-6">
-        <div>
-          <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-2">
-            Target Filename
-          </label>
-          <input
-            type="text"
-            value={filename}
-            onChange={(e) => setFilename(e.target.value)}
-            placeholder="database.py"
-            className="bg-[#0E1322] border border-gray-800 focus:border-neonRed rounded-xl px-4 py-2.5 text-sm text-gray-200 outline-none w-64 transition-colors mb-4"
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+        <div className="lg:col-span-1">
+          <GithubRepoBrowser
+            onFileSelected={(fn, cd, lang) => {
+              setFilename(fn);
+              setCode(cd);
+              setLanguage(lang);
+            }}
+            themeColor="neonRed"
           />
+        </div>
+
+        <div className="lg:col-span-3 space-y-6">
+          <div>
+            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-2">
+              Target Filename
+            </label>
+            <input
+              type="text"
+              value={filename}
+              onChange={(e) => setFilename(e.target.value)}
+              placeholder="database.py"
+              className="bg-[#0E1322] border border-gray-800 focus:border-neonRed rounded-xl px-4 py-2.5 text-sm text-gray-200 outline-none w-full md:w-64 transition-colors"
+            />
+          </div>
 
           <CodeEditor
             code={code}
@@ -100,19 +114,19 @@ const SecurityPage: React.FC = () => {
             themeColor="neonRed"
             submitLabel="Run Security Scan"
           />
-        </div>
 
-        {review && (
-          <div className="space-y-4 mt-4">
-            <h3 className="text-md font-bold text-gray-200">Security Audit Report</h3>
-            <AnalysisResultView
-              type="security_scan"
-              result={review.result}
-              status={review.status}
-              errorMessage={review.error_message}
-            />
-          </div>
-        )}
+          {review && (
+            <div className="space-y-4">
+              <h3 className="text-md font-bold text-gray-200">Security Audit Report</h3>
+              <AnalysisResultView
+                type="security_scan"
+                result={review.result}
+                status={review.status}
+                errorMessage={review.error_message}
+              />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

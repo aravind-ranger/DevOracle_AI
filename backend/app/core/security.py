@@ -1,19 +1,24 @@
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
 import jwt
-from passlib.context import CryptContext
+import bcrypt
 from app.core.config import settings
 
-# Setup password context
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 def hash_password(password: str) -> str:
-    """Hash a plain text password using bcrypt."""
-    return pwd_context.hash(password)
+    """Hash a plain text password using bcrypt directly."""
+    pwd_bytes = password.encode('utf-8')
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(pwd_bytes, salt)
+    return hashed.decode('utf-8')
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a plain password against the stored bcrypt hash."""
-    return pwd_context.verify(plain_password, hashed_password)
+    """Verify a plain password against the stored bcrypt hash using bcrypt directly."""
+    pwd_bytes = plain_password.encode('utf-8')
+    hashed_bytes = hashed_password.encode('utf-8')
+    try:
+        return bcrypt.checkpw(pwd_bytes, hashed_bytes)
+    except Exception:
+        return False
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     """Generate a JWT access token."""
