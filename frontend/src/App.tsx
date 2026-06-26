@@ -14,6 +14,7 @@ import SeniorPage from './pages/SeniorPage';
 import RepositoryPage from './pages/RepositoryPage';
 import HistoryPage from './pages/HistoryPage';
 import ReviewDetailsPage from './pages/ReviewDetailsPage';
+import PulsePage from './pages/PulsePage';
 
 import ConsoleLayout from './components/ConsoleLayout';
 import Navbar from './components/Navbar';
@@ -52,6 +53,7 @@ const App: React.FC = () => {
               <Route path="pr-review" element={<PRReviewPage />} />
               <Route path="senior" element={<SeniorPage />} />
               <Route path="repository" element={<RepositoryPage />} />
+              <Route path="pulse" element={<PulsePage />} />
               <Route path="review/:id" element={<ReviewDetailsPage />} />
             </Route>
 

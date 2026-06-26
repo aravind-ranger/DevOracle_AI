@@ -22,7 +22,7 @@ from app.core.exceptions import (
     http_exception_handler,
     global_exception_handler
 )
-from app.api import auth, reviews, health, github
+from app.api import auth, reviews, health, github, rer
 
 # Configure Logging
 import logging
@@ -118,6 +118,7 @@ app.include_router(auth.router, prefix="/api")
 app.include_router(reviews.router, prefix="/api")
 app.include_router(health.router, prefix="/api")
 app.include_router(github.router, prefix="/api")
+app.include_router(rer.router, prefix="/api")
 
 @app.get("/", include_in_schema=False)
 def root_redirect():

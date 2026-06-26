@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Bug, ShieldAlert, GitPullRequest, Award, FolderGit2, History } from 'lucide-react';
+import { Bug, ShieldAlert, GitPullRequest, Award, FolderGit2, History, Activity } from 'lucide-react';
 
 const Sidebar: React.FC = () => {
   const navItems = [
@@ -43,6 +43,14 @@ const Sidebar: React.FC = () => {
       icon: FolderGit2,
       color: 'hover:text-neonGreen text-neonGreen/70',
       activeColor: 'border-neonGreen/30 text-neonGreen bg-neonGreen/5 bg-opacity-10',
+    },
+    {
+      to: '/dashboard/pulse',
+      name: 'Codebase Pulse',
+      desc: 'Weekly repository evolution',
+      icon: Activity,
+      color: 'hover:text-neonBlue text-neonBlue/70',
+      activeColor: 'border-neonBlue/30 text-neonBlue bg-neonBlue/5 bg-opacity-10',
     },
   ];
 
